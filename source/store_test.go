@@ -20,6 +20,7 @@ import (
 	"errors"
 	"testing"
 
+	agonesclient "agones.dev/agones/pkg/client/clientset/versioned"
 	cfclient "github.com/cloudfoundry-community/go-cfclient"
 	openshift "github.com/openshift/client-go/route/clientset/versioned"
 	"github.com/stretchr/testify/mock"
@@ -37,6 +38,7 @@ type MockClientGenerator struct {
 	cloudFoundryClient      *cfclient.Client
 	dynamicKubernetesClient dynamic.Interface
 	openshiftClient         openshift.Interface
+	agonesClient            agonesclient.Interface
 }
 
 func (m *MockClientGenerator) KubeClient() (kubernetes.Interface, error) {
@@ -80,6 +82,15 @@ func (m *MockClientGenerator) OpenShiftClient() (openshift.Interface, error) {
 	if args.Error(1) == nil {
 		m.openshiftClient = args.Get(0).(openshift.Interface)
 		return m.openshiftClient, nil
+	}
+	return nil, args.Error(1)
+}
+
+func (m *MockClientGenerator) AgonesClient() (agonesclient.Interface, error) {
+	args := m.Called()
+	if args.Error(1) == nil {
+		m.agonesClient = args.Get(0).(agonesclient.Interface)
+		return m.agonesClient, nil
 	}
 	return nil, args.Error(1)
 }

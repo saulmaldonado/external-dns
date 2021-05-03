@@ -3,6 +3,7 @@ module sigs.k8s.io/external-dns
 go 1.16
 
 require (
+	agones.dev/agones v1.14.0
 	cloud.google.com/go v0.50.0
 	git.blindage.org/21h/hcloud-dns v0.0.0-20200807003420-f768ffe03f8d
 	github.com/Azure/azure-sdk-for-go v45.1.0+incompatible
@@ -66,9 +67,9 @@ require (
 	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 	istio.io/api v0.0.0-20210128181506-0c4b8e54850f
 	istio.io/client-go v0.0.0-20210128182905-ee2edd059e02
-	k8s.io/api v0.18.8
-	k8s.io/apimachinery v0.18.8
-	k8s.io/client-go v0.18.8
+	k8s.io/api v0.18.15
+	k8s.io/apimachinery v0.18.15
+	k8s.io/client-go v0.18.15
 	k8s.io/kubernetes v1.13.0
 )
 

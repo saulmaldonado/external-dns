@@ -441,7 +441,7 @@ func newRecord(ep *endpoint.Endpoint) *dns.ResourceRecordSet {
 	// way we can use it has is here and trim it off if it exists when necessary.
 	targets := make([]string, len(ep.Targets))
 	copy(targets, []string(ep.Targets))
-	if ep.RecordType == endpoint.RecordTypeCNAME {
+	if ep.RecordType == endpoint.RecordTypeCNAME || ep.RecordType == endpoint.RecordTypeSRV {
 		targets[0] = provider.EnsureTrailingDot(targets[0])
 	}
 

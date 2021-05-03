@@ -23,6 +23,7 @@ import (
 	"sync"
 	"time"
 
+	agonesclient "agones.dev/agones/pkg/client/clientset/versioned"
 	"github.com/cloudfoundry-community/go-cfclient"
 	"github.com/linki/instrumented_http"
 	openshift "github.com/openshift/client-go/route/clientset/versioned"
@@ -73,6 +74,7 @@ type ClientGenerator interface {
 	CloudFoundryClient(cfAPPEndpoint string, cfUsername string, cfPassword string) (*cfclient.Client, error)
 	DynamicKubernetesClient() (dynamic.Interface, error)
 	OpenShiftClient() (openshift.Interface, error)
+	AgonesClient() (agonesclient.Interface, error)
 }
 
 // SingletonClientGenerator stores provider clients and guarantees that only one instance of client
@@ -86,11 +88,13 @@ type SingletonClientGenerator struct {
 	cfClient        *cfclient.Client
 	dynKubeClient   dynamic.Interface
 	openshiftClient openshift.Interface
+	agonesClient    agonesclient.Interface
 	kubeOnce        sync.Once
 	istioOnce       sync.Once
 	cfOnce          sync.Once
 	dynCliOnce      sync.Once
 	openshiftOnce   sync.Once
+	agonesOnce      sync.Once
 }
 
 // KubeClient generates a kube client if it was not created before
@@ -151,6 +155,15 @@ func (p *SingletonClientGenerator) OpenShiftClient() (openshift.Interface, error
 		p.openshiftClient, err = NewOpenShiftClient(p.KubeConfig, p.APIServerURL, p.RequestTimeout)
 	})
 	return p.openshiftClient, err
+}
+
+// AgonesClient generates an Agones client is it was not created before
+func (p *SingletonClientGenerator) AgonesClient() (agonesclient.Interface, error) {
+	var err error
+	p.agonesOnce.Do(func() {
+		p.agonesClient, err = NewAgonesClient(p.KubeConfig, p.APIServerURL)
+	})
+	return p.agonesClient, err
 }
 
 // ByNames returns multiple Sources given multiple names.
@@ -287,6 +300,13 @@ func BuildWithConfig(source string, p ClientGenerator, cfg *Config) (Source, err
 			token = restConfig.BearerToken
 		}
 		return NewRouteGroupSource(cfg.RequestTimeout, token, tokenPath, apiServerURL, cfg.Namespace, cfg.AnnotationFilter, cfg.FQDNTemplate, cfg.SkipperRouteGroupVersion, cfg.CombineFQDNAndAnnotation, cfg.IgnoreHostnameAnnotation)
+	case "gameserver":
+		client, err := p.AgonesClient()
+		if err != nil {
+			return nil, err
+		}
+
+		return NewGameServerSource(client, cfg.Namespace)
 	}
 	return nil, ErrSourceNotFound
 }
@@ -449,4 +469,24 @@ func NewOpenShiftClient(kubeConfig, apiServerURL string, requestTimeout time.Dur
 	log.Infof("Created OpenShift client %s", config.Host)
 
 	return client, nil
+}
+
+func NewAgonesClient(kubeConfig, apiServerURL string) (*agonesclient.Clientset, error) {
+	if kubeConfig == "" {
+		if _, err := os.Stat(clientcmd.RecommendedHomeFile); err == nil {
+			kubeConfig = clientcmd.RecommendedHomeFile
+		}
+	}
+
+	restCfg, err := clientcmd.BuildConfigFromFlags(apiServerURL, kubeConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	ac, err := agonesclient.NewForConfig(restCfg)
+	if err != nil {
+		return nil, errors.Wrap(err, "Failed to create agones client")
+	}
+
+	return ac, nil
 }
