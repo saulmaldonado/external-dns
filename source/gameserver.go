@@ -19,6 +19,7 @@ package source
 import (
 	"context"
 	"fmt"
+	"strings"
 	"time"
 
 	agonesv1 "agones.dev/agones/pkg/apis/agones/v1"
@@ -76,16 +77,28 @@ func (gss *gameServerSource) Endpoints(ctx context.Context) ([]*endpoint.Endpoin
 	endpoints := []*endpoint.Endpoint{}
 	for _, gs := range gameServers {
 		if domain, ok := gs.Annotations[hostnameAnnotationKey]; ok && !isBeforePodCreated(gs) {
-			port := gs.Status.Ports[0].Port
 			address := gs.Status.Address
 
 			dnsName := fmt.Sprintf("%s.%s", gs.Name, domain)
 
 			endpoints = append(endpoints, endpoint.NewEndpoint(dnsName, endpoint.RecordTypeA, address))
-			endpoints = append(endpoints, endpoint.NewEndpoint(
-				newSrvDNSName("minecraft", "tcp", dnsName),
-				endpoint.RecordTypeSRV,
-				newSrvTargetName(port, dnsName)))
+
+			if service, ok := gs.Annotations[gameserverServiceNameKey]; ok {
+				var protocol string
+
+				if p, ok := gs.Annotations[gameserverProtocolKey]; ok {
+					protocol = p
+				} else {
+					protocol = strings.ToLower(string(gs.Spec.Ports[0].Protocol))
+				}
+
+				port := gs.Status.Ports[0].Port
+
+				endpoints = append(endpoints, endpoint.NewEndpoint(
+					newSrvDNSName(service, protocol, dnsName),
+					endpoint.RecordTypeSRV,
+					newSrvTargetName(port, dnsName)))
+			}
 		}
 	}
 	return endpoints, nil
