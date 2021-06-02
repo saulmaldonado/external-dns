@@ -50,10 +50,12 @@ const (
 	controllerAnnotationValue = "dns-controller"
 	// The annotation used for defining the desired hostname
 	internalHostnameAnnotationKey = "external-dns.alpha.kubernetes.io/internal-hostname"
-	// The annotation used for service name on srv records for gameservers
+	// The annotation used for defining the service name on srv records for gameservers
 	gameserverServiceNameKey = "external-dns.alpha.kubernetes.io/gameserver-service"
-	// The annotation used for service name on srv records for gameservers
+	// The annotation used for defining the protocol name on srv records for gameservers
 	gameserverProtocolKey = "external-dns.alpha.kubernetes.io/gameserver-protocol"
+	// The annotation used for setting a custom subdomain for gameserver addresses
+	customSubdomainKey = "external-dns.alpha.kubernetes.io/gameserver-subdomain"
 )
 
 // Provider-specific annotations

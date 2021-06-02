@@ -78,8 +78,13 @@ func (gss *gameServerSource) Endpoints(ctx context.Context) ([]*endpoint.Endpoin
 	for _, gs := range gameServers {
 		if domain, ok := gs.Annotations[hostnameAnnotationKey]; ok && !isBeforePodCreated(gs) {
 			address := gs.Status.Address
+			subdomain := gs.Name
 
-			dnsName := fmt.Sprintf("%s.%s", gs.Name, domain)
+			if customDomain, ok := gs.Annotations[customSubdomainKey]; ok {
+				subdomain = customDomain
+			}
+
+			dnsName := fmt.Sprintf("%s.%s", subdomain, domain)
 
 			endpoints = append(endpoints, endpoint.NewEndpoint(dnsName, endpoint.RecordTypeA, address))
 
